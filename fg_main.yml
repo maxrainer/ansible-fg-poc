@@ -9,7 +9,7 @@
     - fgt_user: "{{ ansible_user }}"
     - fgt_pass: "{{ ansible_pass }}"
     - fgt_host: "{{ ansible_host }}"
-    - _zone: "zone16"
+    - _zone: ""
     - fw_rules_zero: "{{ fw_rules[0] }}"
 
   tasks:
