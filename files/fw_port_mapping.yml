@@ -1,0 +1,9 @@
+http: 
+  port: 80
+  proto: tcp
+https: 
+  port: 443
+  proto: tcp
+dns-udp: 
+  port: 53
+  proto: udp

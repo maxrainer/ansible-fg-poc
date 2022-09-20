@@ -1,0 +1,7 @@
+---
+
+- name: run role firewall on Fortigate
+  hosts: fg
+  gather_facts: no
+  roles: 
+    - firewall_generic

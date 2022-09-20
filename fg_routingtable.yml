@@ -1,0 +1,58 @@
+# cli execution best practices:
+# https://ansible-galaxy-fortios-docs.readthedocs.io/en/latest/faq.html#how-to-work-with-raw-fotios-cli
+
+- name: Prepare The Shell Script Template.
+  raw: |
+        cat > {{script_path }} << EOF_OUTER
+        # /bin/bash
+        # Please make sure tool sshpass is installed. e.g. on Debian/Ubuntu, apt-get install sshpass.
+        # Optionally you can pass some parameters.
+        # The character `a` at second line below is to avoid post-login-banner barrier.
+        sshpass -p '{{ fgt_pass }}' ssh -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_host }} <<EOF
+        #a
+        # ====================== Edit Your Commands Below =============================================
+        get router info routing-table details {{ srcip }}
+        # ==============================================================================================
+        EOF
+        EOF_OUTER
+  delegate_to: localhost
+
+- name: Execute The Cli Commands.
+  raw: |
+          chmod +x {{ script_path }} && {{ script_path }}
+  args:
+    executable: /bin/bash
+  register: _routingtable
+  delegate_to: localhost
+- debug: 
+    var: _routingtable.stdout
+    verbosity: 2
+
+- name: parse routingtable with textfsm
+  ansible.utils.cli_parse:
+    text: "{{ _routingtable.stdout }}"
+    parser:
+      name: ansible.utils.textfsm
+      command: show ip route
+  register: _parsed_route
+
+- debug: 
+    var: _parsed_route.parsed[0]['NEXTHOP_IF']
+    verbosity: 2
+  
+- name: system zone mapping with facts
+  fortinet.fortios.fortios_configuration_fact:
+    vdom: "{{ fw_fg_vdom | default('') }}"
+    access_token: "{{ fw_access_token | default(omit) }}"
+    selectors:
+      - selector: system_zone
+  register: _route_zone
+
+- debug:
+    msg: "{{ _route_zone.meta[0].results }}"
+    verbosity: 2
+
+- set_fact: 
+    _zone: "{{ item.name if item.interface[0]['interface-name'] == _parsed_route.parsed[0]['NEXTHOP_IF'] else _zone }}"
+  loop: "{{ _route_zone.meta[0].results }}"
+  when: item.interface

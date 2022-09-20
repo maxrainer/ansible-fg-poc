@@ -1,0 +1,104 @@
+---
+
+- name: run tasks and role firewall on Fortigate
+  hosts: fg
+  gather_facts: no
+  vars:
+    - fw_select_file: files/fw_select.csv
+    - _fw_selected: []
+    - fgt_user: "{{ ansible_user }}"
+    - fgt_pass: "{{ ansible_pass }}"
+    - fgt_host: "{{ ansible_host }}"
+    - _zone: "zone16"
+    - fw_rules_zero: "{{ fw_rules[0] }}"
+
+  tasks:
+    - name: only run once block
+      block:
+      - name: read select file
+        read_csv:
+          path: "{{ fw_select_file }}"
+          delimiter: ';'
+          key: 'subnet'
+          unique: true
+        register: _fw_select_dict
+        delegate_to: localhost
+      
+      - debug: 
+          var: _fw_select_dict
+          verbosity: 2
+
+  # design decision: only the first source and destination are taken to select firewalls
+      - name: select Firewall for Source
+        set_fact:
+          _fw_selected: "{{ _fw_selected + [_fw_select_dict.dict[fw_rules[0].src.addresses[0].ipv4 | ansible.utils.ipsubnet(16,0)].fw] }}"
+      - name: select Firewall for Destination
+        set_fact:
+          _fw_selected: "{{ _fw_selected + [_fw_select_dict.dict[fw_rules[0].dest.addresses[0].ipv4 | ansible.utils.ipsubnet(16,0)].fw] }}"
+      
+      - name: firwalls selected for deployment
+        debug:
+          var: _fw_selected
+      
+      - name: get zone for src address
+        ansible.builtin.include_tasks: 
+          file: fg_routingtable.yml
+        vars:
+          - srcip: "{{ fw_rules[0].src.addresses[0].ipv4 }}"
+          - script_path: '/tmp/fgt.shell.src.task'
+
+      - name: "set fw_rule variable src zone: {{ _zone }}"
+        set_fact:
+          _cache: "{{ fw_rules_zero.src }}"
+          _src_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
+        failed_when: _zone == ""
+      - set_fact:
+          _cache: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
+      - set_fact:
+          fw_rules_zero: "{{ fw_rules_zero | default({}) | combine( {'src': _cache }) }}"
+          fw_rules: []
+      - set_fact: 
+          fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
+        
+      - name: get zone for dest address
+        ansible.builtin.include_tasks: 
+          file: fg_routingtable.yml
+        vars:
+          - srcip: "{{ fw_rules[0].dest.addresses[0].ipv4 }}"
+          - script_path: '/tmp/fgt.shell.dest.task'
+          - _zone: ""
+
+      - name: "set fw_rule variable dest zone: {{ _zone }}"
+        set_fact:
+            _cache: "{{ fw_rules_zero.dest }}"
+            _dest_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
+        failed_when: _zone == ""
+      - set_fact:
+          _cache: "{{ fw_rules[0]['dest'] | default({}) | combine( {'zone': _zone}) }}" 
+      - set_fact:
+          fw_rules_zero: "{{ fw_rules_zero | default({}) | combine( {'dest': _cache }) }}"
+          fw_rules: []
+      - set_fact: 
+          fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
+      
+      - debug: 
+          var: fw_rules
+          verbosity: 2
+
+      - name: start rulecheck 
+        ansible.builtin.include_tasks: 
+          file: fg_rulecheck.yml
+        vars:
+          - script_path: '/tmp/fgt.shell.rule.task'
+
+      run_once: true 
+      # block finished 
+        
+    - name: start executing generic firewall role
+      ansible.builtin.include_role: 
+        name: firewall_generic
+        apply: 
+          tags: 
+            - rule
+      when: inventory_hostname in _fw_selected
+        
