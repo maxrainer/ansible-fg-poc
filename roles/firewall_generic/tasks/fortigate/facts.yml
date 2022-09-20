@@ -1,0 +1,39 @@
+---
+
+# - name: gather facts from FortiGate
+#   fortinet.fortios.fortios_configuration_fact: 
+#     vdom: "{{ fw_fg_vdom | default('') }}"
+#     access_token: "{{ fw_access_token | default(omit) }}"
+#     selectors:
+#       - selector: ips_sensor
+#   register: _fg_ips
+
+# - debug:
+#     var: _fg_ips
+
+
+- name: gather facts from FortiGate
+  fortinet.fortios.fortios_configuration_fact: 
+    vdom: "{{ fw_fg_vdom | default('') }}"
+    access_token: "{{ fw_access_token | default(omit) }}"
+    selectors:
+      - selector: firewall_policy
+  register: _fg_facts
+
+- debug: 
+    var: _fg_facts
+
+- set_fact: 
+    _current: "{{ item.policyid }}"
+  when: item.name == 'rule_A'
+  loop: "{{ _fg_facts.meta[0].results }}"
+
+- debug:
+    var: _current
+
+- set_fact:
+    _last: "{{ (_fg_facts.meta[0].results | length | int) -1}}"
+- debug: 
+    var: _last
+- debug:
+    msg: "{{ _fg_facts.meta[0].results[_last | int].policyid }}"

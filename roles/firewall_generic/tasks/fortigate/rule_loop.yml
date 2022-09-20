@@ -1,0 +1,101 @@
+---
+# inner rule
+# Fortigate
+
+- set_fact:
+    _src_names: []
+    _dest_names: []
+    _services: []
+    _action: "{{ 'accept' if _rule.rule.action == 'permit' else 'deny' }}"
+    _utm_status: "{{ 'enable' if _rule.rule.ips_sensor != '' else 'disable' }}"
+    _next_policyid: 0
+    _intf: "{{ _rule.src.zone }}"
+
+# - set_fact:
+#     _intf: "{{ _rule.src.zone }}"
+
+- name: loop src IP address list
+  include_tasks:
+    file: ipaddress_loop.yml
+    apply:
+      tags: rule
+  loop: "{{ _rule.src.addresses }}"
+  loop_control:
+    label: "{{ _address.ipv4 }}"
+    loop_var: _address
+  when: _rule.src.addresses | length > 0
+  tags: [rule]
+
+- set_fact:
+    _intf: "{{ _rule.dest.zone }}"
+  
+- name: loop dest IP address list
+  include_tasks:
+    file: ipaddress_loop.yml
+    apply:
+      tags: rule
+  loop: "{{ _rule.dest.addresses }}"
+  loop_control:
+    label: "{{ _address.ipv4 }}"
+    loop_var: _address
+  when: _rule.src.addresses | length > 0
+  tags: [rule]
+
+- name: generate list of source addresses
+  set_fact: 
+    _src_names: "{{ _src_names + [{'name': item.name}] }}"
+  loop: "{{ _rule.src.addresses }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: generate list of destination addresses
+  set_fact: 
+    _dest_names: "{{ _dest_names + [{'name': item.name}] }}"
+  loop: "{{ _rule.dest.addresses }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: generate list of services
+  set_fact: 
+    _services: "{{ _services + [{'name': fg_services[item]}] }}"
+  loop: "{{ _rule.services }}"
+
+- debug: 
+    var:  _services
+    verbosity: 2
+
+- name: gather policyids from Fortigate
+  fortinet.fortios.fortios_configuration_fact: 
+    vdom: "{{ fw_fg_vdom | default('') }}"
+    access_token: "{{ fw_access_token | default(omit) }}"
+    selectors:
+      - selector: firewall_policy
+  register: _fg_facts
+
+- name: find duplicate policy name and set ID
+  set_fact: 
+    _next_policyid: "{{ item.policyid }}"
+  when: item.name == _rule.name
+  loop: "{{ _fg_facts.meta[0].results }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: "add rule {{ _rule.name }} with policyID: {{ _next_policyid }}"
+  fortinet.fortios.fortios_firewall_policy:
+    vdom: "{{ fw_fg_vdom | default('') }}"
+    access_token: "{{ fw_access_token | default(omit) }}"
+    state: present
+    firewall_policy: 
+      policyid: "{{ _next_policyid }}"
+      name: "{{ _rule.name }}" 
+      srcaddr: "{{ _src_names }}"
+      srcintf:
+        - name: "{{ _rule.src.zone }}"
+      dstaddr: "{{ _dest_names }}"
+      dstintf:
+        - name: "{{ _rule.dest.zone }}"
+      service: "{{ _services }}"
+      action: "{{ _action }}" 
+      ips_sensor: "{{ _rule.rule.ips_sensor | default(omit) }}"
+      utm_status: "{{ _utm_status | default(omit) }}"
+      schedule: always
