@@ -57,6 +57,10 @@
   loop: "{{ _route_zone.meta[0].results }}"
   when: item.interface
 
-- set_fact:
-    _zone: "any"
-  when: _zone == ''
+- debug:  
+    var: _zone
+
+# - name: default zone to any if empty
+#   set_fact:
+#     _zone: "any"
+#   when: _zone == ''
