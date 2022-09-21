@@ -7,7 +7,7 @@
     - fw_select_file: files/fw_select.csv
     - _fw_selected: []
     - fgt_user: "{{ ansible_user }}"
-    - fgt_pass: "{{ ansible_pass }}"
+    - fgt_pass: "{{ ansible_ssh_pass }}"
     - fgt_host: "{{ ansible_host }}"
     - _zone: ""
     - fw_rules_zero: "{{ fw_rules[0] }}"
@@ -91,7 +91,7 @@
           file: fg_rulecheck.yml
         vars:
           - script_path: '/tmp/fgt.shell.rule.task'
-          
+
       run_once: true 
       # block finished
 
