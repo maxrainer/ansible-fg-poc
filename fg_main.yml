@@ -90,6 +90,9 @@
           file: fg_rulecheck.yml
         vars:
           - script_path: '/tmp/fgt.shell.rule.task'
+      
+      - set_fact: 
+          _cached_rules: "{{ fw_rules }}"
 
       run_once: true 
       # block finished
@@ -100,5 +103,7 @@
         apply: 
           tags: 
             - rule
+      vars: 
+        fw_rules: "{{ _cached_rules }}"
       when: inventory_hostname in _fw_selected
         
