@@ -56,3 +56,7 @@
     _zone: "{{ item.name if item.interface[0]['interface-name'] == _parsed_route.parsed[0]['NEXTHOP_IF'] else _zone }}"
   loop: "{{ _route_zone.meta[0].results }}"
   when: item.interface
+
+- set_fact:
+    _zone: "any"
+  when: _zone == ''

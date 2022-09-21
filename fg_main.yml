@@ -46,6 +46,7 @@
         vars:
           - srcip: "{{ fw_rules[0].src.addresses[0].ipv4 }}"
           - script_path: '/tmp/fgt.shell.src.task'
+          - _zone: ""
 
       - name: "set fw_rule variable src zone: {{ _zone }}"
         set_fact:
@@ -90,10 +91,10 @@
           file: fg_rulecheck.yml
         vars:
           - script_path: '/tmp/fgt.shell.rule.task'
-
+          
       run_once: true 
-      # block finished 
-        
+      # block finished
+
     - name: start executing generic firewall role
       ansible.builtin.include_role: 
         name: firewall_generic
