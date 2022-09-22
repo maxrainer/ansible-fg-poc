@@ -52,16 +52,16 @@
           var: _zone
       - name: "set fw_rule variable src zone: {{ _zone }}"
         set_fact:
-          _cache: "{{ fw_rules_zero.src }}"
+          _tmpvar: "{{ fw_rules_zero.src }}"
           _src_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
         failed_when: _zone == ""
       - set_fact:
-          _cache: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
+          _tmpvar: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
       - name: 2
         debug: 
-          var: _cache
+          var: _tmpvar
       - set_fact:
-          fw_rules: "{{ fw_rules_zero | default({}) | combine( {'src': _cache }) }}"
+          fw_rules: "{{ fw_rules_zero | default({}) | combine( {'src': _tmpvar }) }}"
 #          fw_rules: []
       - name: 3
         debug: 
@@ -83,13 +83,13 @@
 
       - name: "set fw_rule variable dest zone: {{ _zone }}"
         set_fact:
-            _cache: "{{ fw_rules_zero.dest }}"
+            _tmpvar: "{{ fw_rules_zero.dest }}"
             _dest_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
         failed_when: _zone == ""
       - set_fact:
-          _cache: "{{ fw_rules[0]['dest'] | default({}) | combine( {'zone': _zone}) }}" 
+          _tmpvar: "{{ fw_rules[0]['dest'] | default({}) | combine( {'zone': _zone}) }}" 
       - set_fact:
-          fw_rules_zero: "{{ fw_rules_zero | default({}) | combine( {'dest': _cache }) }}"
+          fw_rules_zero: "{{ fw_rules_zero | default({}) | combine( {'dest': _tmpvar }) }}"
           fw_rules: []
       - set_fact: 
           fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
@@ -105,7 +105,7 @@
           - script_path: '/tmp/fgt.shell.rule.task'
       
       - set_fact: 
-          _cached_rules: "{{ fw_rules }}"
+          _tmpvard_rules: "{{ fw_rules }}"
 
       run_once: true 
       # block finished
@@ -117,6 +117,6 @@
           tags: 
             - rule
       vars: 
-        fw_rules: "{{ _cached_rules }}"
+        fw_rules: "{{ _tmpvard_rules }}"
       when: inventory_hostname in _fw_selected
         
