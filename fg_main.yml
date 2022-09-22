@@ -47,6 +47,9 @@
           - srcip: "{{ fw_rules[0].src.addresses[0].ipv4 }}"
           - script_path: '/tmp/fgt.shell.src.task'
 
+      - name: 1
+        debug: 
+          var: _zone
       - name: "set fw_rule variable src zone: {{ _zone }}"
         set_fact:
           _cache: "{{ fw_rules_zero.src }}"
@@ -54,12 +57,22 @@
         failed_when: _zone == ""
       - set_fact:
           _cache: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
+      - name: 2
+        debug: 
+          var: _cache
       - set_fact:
-          fw_rules_zero: "{{ fw_rules_zero | default({}) | combine( {'src': _cache }) }}"
-          fw_rules: []
-      - set_fact: 
-          fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
-          _zone: ""
+          fw_rules: "{{ fw_rules_zero | default({}) | combine( {'src': _cache }) }}"
+#          fw_rules: []
+      - name: 3
+        debug: 
+          var: fw_rules
+      # - set_fact: 
+      #     fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
+      #     _zone: ""
+      # - name: 4
+      #   debug: 
+      #     var: fw_rules
+      - ansible.builtin.meta: end_play
         
       - name: get zone for dest address
         ansible.builtin.include_tasks: 
