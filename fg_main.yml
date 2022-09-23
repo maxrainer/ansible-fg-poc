@@ -10,7 +10,7 @@
     - fgt_pass: "{{ ansible_ssh_pass }}"
     - fgt_host: "{{ ansible_host }}"
     - _zone: ""
-    - local_rule: fw_rules[0]
+    - local_rule: "{{ fw_rules[0] }}"
 
   tasks:
     - name: only run once block
@@ -50,6 +50,10 @@
       - name: 1
         debug: 
           var: _zone
+      - name: 1.1
+        debug: 
+          var: local_rule
+          
       - set_fact:
           _tmpvar: "{{ local_rule['src'] | combine( {'zone': _zone}) }}" 
       - name: 2
