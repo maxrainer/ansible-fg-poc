@@ -10,6 +10,7 @@
     - fgt_pass: "{{ ansible_ssh_pass }}"
     - fgt_host: "{{ ansible_host }}"
     - _zone: ""
+    - local_rule: fw_rules[0]
 
   tasks:
     - name: only run once block
@@ -50,16 +51,15 @@
         debug: 
           var: _zone
       - set_fact:
-          _tmpvar: "{{ fw_rules[0]['src'] | combine( {'zone': _zone}) }}" 
+          _tmpvar: "{{ local_rule['src'] | combine( {'zone': _zone}) }}" 
       - name: 2
         debug: 
           var: _tmpvar
       - set_fact:
-          fw_rules: "{{ fw_rules[0] | combine( {'source': _tmpvar }, list_merge='replace') }}"
-          cacheable: yes
+          local_rule: "{{ local_rule | combine( {'source': _tmpvar }, list_merge='replace') }}"
       - name: 3
         debug: 
-          var: fw_rules
+          var: local_rule
 
       - ansible.builtin.meta: end_play
         
