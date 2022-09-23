@@ -50,30 +50,17 @@
       - name: 1
         debug: 
           var: _zone
-
-        # set_fact:
-        #   _tmpvar: "{{ fw_rules_zero.src }}"
-        #   _src_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
-        # failed_when: _zone == ""
       - set_fact:
-#          _src_intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
           _tmpvar: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
-        failed_when: _zone == ""
       - name: 2
         debug: 
           var: _tmpvar
       - set_fact:
           fw_rules: "{{ fw_rules_zero | default({}) | combine( {'src': _tmpvar }) }}"
-#          fw_rules: []
       - name: 3
         debug: 
           var: fw_rules
-      # - set_fact: 
-      #     fw_rules: "{{ fw_rules + [fw_rules_zero] }}"
-      #     _zone: ""
-      # - name: 4
-      #   debug: 
-      #     var: fw_rules
+
       - ansible.builtin.meta: end_play
         
       - name: get zone for dest address
