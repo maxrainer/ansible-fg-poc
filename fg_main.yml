@@ -56,6 +56,7 @@
           var: _tmpvar
       - set_fact:
           fw_rules: "{{ fw_rules[0] | combine( {'source': _tmpvar }, list_merge='replace') }}"
+          cacheable: yes
       - name: 3
         debug: 
           var: fw_rules
