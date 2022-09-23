@@ -50,12 +50,12 @@
         debug: 
           var: _zone
       - set_fact:
-          _tmpvar: "{{ fw_rules[0]['src'] | default({}) | combine( {'zone': _zone}) }}" 
+          _tmpvar: "{{ fw_rules[0]['src'] | combine( {'zone': _zone}) }}" 
       - name: 2
         debug: 
           var: _tmpvar
       - set_fact:
-          fw_rules: "{{ fw_rules[0] | default({}) | combine( {'src': _tmpvar }) }}"
+          fw_rules: "{{ fw_rules[0] | combine( {'src': _tmpvar }, list_merge='replace') }}"
       - name: 3
         debug: 
           var: fw_rules
