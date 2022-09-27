@@ -3,8 +3,8 @@
 - name: yaml to json
   debug:
     msg: "{{ fw_rules | to_json }}"
-    verbosity: 2
-  tags: [debug]
+    # verbosity: 2
+#  tags: [debug]
 
 - name: set variable for rules 
   include_vars: vars/survey_acls.yml

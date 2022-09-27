@@ -6,9 +6,9 @@
 # <src [10.10.44.46-1234] dst [10.90.1.200-443] proto tcp dev Vlan44> doesn't match any policy.
 
 - set_fact: 
-    src_ip: "{{ fw_rules[0].src.addresses[0].ipv4 }}"
-    dest_ip: "{{ fw_rules[0].dest.addresses[0].ipv4 }}"
-    dest_service: "{{ fw_rules[0].services[0] }}"
+    src_ip: "{{ local_rule.src.addresses[0].ipv4 }}"
+    dest_ip: "{{ local_rule.dest.addresses[0].ipv4 }}"
+    dest_service: "{{ local_rule.services[0] }}"
     src_intf: "{{ _src_intf }}"
 
 - name: loading mapping file
