@@ -4,6 +4,7 @@
 # diag firewall iprope lookup 10.10.44.46 1234 10.90.1.200 443 tcp Vlan44
 # <src [10.10.44.46-1234] dst [10.90.1.200-443] proto tcp dev Vlan44> matches policy id: 4
 # <src [10.10.44.46-1234] dst [10.90.1.200-443] proto tcp dev Vlan44> doesn't match any policy.
+# http://{{server}}/api/v2/monitor/firewall/policy-lookup?sourceip=10.90.0.13&dest=10.194.2.5&destport=443&protocol=tcp&ipVersion=ipv4&srcintf=port2&vdom=root
 
 - set_fact: 
     src_ip: "{{ local_rule.src.addresses[0].ipv4 }}"
@@ -16,53 +17,29 @@
     file: files/fw_port_mapping.yml
     name: port_map
 
-- name: Prepare The Shell Script Template.
-  raw: |
-        cat > {{script_path }} << EOF_OUTER
-        # /bin/bash
-        # Please make sure tool sshpass is installed. e.g. on Debian/Ubuntu, apt-get install sshpass.
-        # Optionally you can pass some parameters.
-        # The character `a` at second line below is to avoid post-login-banner barrier.
-        sshpass -p '{{ fgt_pass }}' ssh -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_host }} <<EOF
-        #a
-        # ====================== Edit Your Commands Below =============================================
-        diag firewall iprope lookup {{ src_ip }} 1234 {{ dest_ip }} {{ port_map[dest_service].port }} {{ port_map[dest_service].proto }} {{ src_intf }}
-        # ==============================================================================================
-        EOF
-        EOF_OUTER
-  delegate_to: localhost
+- set_fact: 
+    _query: "sourceip={{ src_ip }}&dest={{ dest_ip }}&destport={{ port_map[dest_service].port }}&protocol={{ port_map[dest_service].proto }}&srcintf={{ src_intf }}&vdom={{ fw_fg_vdom }}"
 
-- name: Execute The Cli Commands.
-  raw: |
-          chmod +x {{ script_path }} && {{ script_path }}
-  args:
-    executable: /bin/bash
-  register: _rulecheck
-  delegate_to: localhost
+- name: firewall policy lookup
+  ansible.builtin.uri: 
+    url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/monitor/firewall/policy-lookup?{{ _query }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ fw_access_token }}"
+    status_code: 200
+  register: _fw_lookup
 
 - debug: 
-    var: _rulecheck
+    var: _fw_lookup
     verbosity: 2
-
-- name: parse policycheck with textfsm
-  ansible.utils.cli_parse:
-    text: "{{ _rulecheck.stdout }}"
-    parser:
-      name: ansible.utils.textfsm
-      command: diag policy
-  register: _parsed_policy
 
 - name: print policy diag result if exists
   debug: 
-    msg: "existing policy ID: {{ _parsed_policy.parsed[0].policyid }} found"
-  when: _parsed_policy.parsed[0] is defined
+    msg: "existing policy ID: {{ _fw_lookup.json.results.policy_id }} found"
+  when: _fw_lookup.json.results | length > 0 and _fw_lookup.json.results.success == true
   
 - name: stop playbook if existing ID found
   ansible.builtin.meta: end_play
   when: 
-    - _parsed_policy.parsed[0] is defined 
-    - _parsed_policy.parsed[0].policyid != '0'
-
-- debug: 
-    var: _parsed_policy
-    verbosity: 2
+    - _fw_lookup.json.results | length > 0
+    - _fw_lookup.json.results.success == true

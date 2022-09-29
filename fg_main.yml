@@ -6,9 +6,9 @@
   vars:
     - fw_select_file: files/fw_select.csv
     - _fw_selected: []
-    - fgt_user: "{{ ansible_user }}"
-    - fgt_pass: "{{ ansible_ssh_pass }}"
-    - fgt_host: "{{ ansible_host }}"
+    # - fgt_user: "{{ ansible_user }}"
+    # - fgt_pass: "{{ ansible_ssh_pass }}"
+    # - fgt_host: "{{ ansible_host }}"
     - _zone: ""
     - local_rule: "{{ fw_rule }}"
     - fw_rules: []
@@ -53,10 +53,6 @@
           _src_intf: "{{ _intf }}"
       - set_fact:
           local_rule: "{{ local_rule | combine( {'src': _tmpvar }, list_merge='replace') }}"
-          
-      - name: 1
-        debug: 
-          var: local_rule
         
       - name: get zone for dest address
         ansible.builtin.include_tasks: 
@@ -70,9 +66,10 @@
       - set_fact:
           local_rule: "{{ local_rule | combine( {'dest': _tmpvar }, list_merge='replace') }}"
       
-      - name: 2
+      - name: print local rule
         debug: 
           var: local_rule
+          verbosity: 2
 
       - name: start rulecheck 
         ansible.builtin.include_tasks: 

@@ -1,62 +1,87 @@
-# cli execution best practices:
-# https://ansible-galaxy-fortios-docs.readthedocs.io/en/latest/faq.html#how-to-work-with-raw-fotios-cli
+# http://{{server}}/api/v2/monitor/router/lookup?destination=10.90.0.2&ipv6=false&vdom=root
+# {
+#     "http_method": "GET",
+#     "results": {
+#         "success": true,
+#         "network": "10.90.0.0/16",
+#         "gateway": "11.11.11.11",
+#         "interface": "port2"
+#     },
+#     "vdom": "root",
+#     "path": "router",
+#     "name": "lookup",
+#     "action": "",
+#     "status": "success",
+#     "serial": "FGVMEVTZQ6NVEO67",
+#     "version": "v7.0.5",
+#     "build": 304
+# }
+# http://{{server}}/api/v2/cmdb/system/zone
+# http://172.16.1.213/api/v2/cmdb/system/zone?filter=name==zone2
+# http://172.16.1.213/api/v2/cmdb/system/zone?filter=interface==port3&vdom=root
+# {
+#     "http_method": "GET",
+#     "size": 2,
+#     "matched_count": 1,
+#     "next_idx": 0,
+#     "revision": "decbd2d83b51e4153dd85221afc64eb3",
+#     "results": [
+#         {
+#             "name": "zone2",
+#             "q_origin_key": "zone2",
+#             "tagging": [],
+#             "description": "",
+#             "intrazone": "deny",
+#             "interface": [
+#                 {
+#                     "interface-name": "port2",
+#                     "q_origin_key": "port2"
+#                 }
+#             ]
+#         }
+#     ],
+#     "vdom": "root",
+#     "path": "system",
+#     "name": "zone",
+#     "status": "success",
+#     "http_status": 200,
+#     "serial": "FGVMEVTZQ6NVEO67",
+#     "version": "v7.0.5",
+#     "build": 304
+# }
 
-- name: Prepare The Shell Script Template.
-  raw: |
-        cat > {{script_path }} << EOF_OUTER
-        # /bin/bash
-        # Please make sure tool sshpass is installed. e.g. on Debian/Ubuntu, apt-get install sshpass.
-        # Optionally you can pass some parameters.
-        # The character `a` at second line below is to avoid post-login-banner barrier.
-        sshpass -p '{{ fgt_pass }}' ssh -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_host }} <<EOF
-        #a
-        # ====================== Edit Your Commands Below =============================================
-        get router info routing-table details {{ srcip }}
-        # ==============================================================================================
-        EOF
-        EOF_OUTER
-  delegate_to: localhost
+- name: "routing lookup for {{ srcip }}"
+  ansible.builtin.uri: 
+    url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/monitor/router/lookup?destination={{ srcip }}&ipv6=false&vdom={{ fw_fg_vdom }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ fw_access_token }}"
+    status_code: 200
+  register: _route_lookup
 
-- name: Execute The Cli Commands.
-  raw: |
-          chmod +x {{ script_path }} && {{ script_path }}
-  args:
-    executable: /bin/bash
-  register: _routingtable
-  delegate_to: localhost
 - debug: 
-    var: _routingtable.stdout
-    verbosity: 2
-
-- name: parse routingtable with textfsm
-  ansible.utils.cli_parse:
-    text: "{{ _routingtable.stdout }}"
-    parser:
-      name: ansible.utils.textfsm
-      command: show ip route
-  register: _parsed_route
-
-- debug: 
-    var: _parsed_route.parsed[0]['NEXTHOP_IF']
-    verbosity: 2
-  
-- name: system zone mapping with facts
-  fortinet.fortios.fortios_configuration_fact:
-    vdom: "{{ fw_fg_vdom | default('') }}"
-    access_token: "{{ fw_access_token | default(omit) }}"
-    selectors:
-      - selector: system_zone
-  register: _route_zone
-
-- debug:
-    msg: "{{ _route_zone.meta[0].results }}"
+    var: _route_lookup
     verbosity: 2
 
 - set_fact: 
-    _zone: "{{ item.name if item.interface[0]['interface-name'] == _parsed_route.parsed[0]['NEXTHOP_IF'] else _zone }}"
-    _intf: "{{ _parsed_route.parsed[0]['NEXTHOP_IF'] }}"
-  loop: "{{ _route_zone.meta[0].results }}"
-  when: item.interface
+    _intf: "{{ _route_lookup.json.results.interface }}"
+
+- name: "zone mapping for interface {{ _intf }}"
+  ansible.builtin.uri: 
+    url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/cmdb/system/zone?filter=interface=={{ _intf }}&vdom={{ fw_fg_vdom }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ fw_access_token }}"
+    status_code: 200
+  register: _zone_mapping
+
+- debug:
+    msg: "{{ _zone_mapping }}"
+    verbosity: 2
+
+- set_fact: 
+    _zone: "{{ _zone_mapping.json.results[0].name }}"
+  when: _zone_mapping.json.results | length > 0 
 
 - name: default zone to any if empty
   set_fact:
