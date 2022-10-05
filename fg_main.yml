@@ -12,10 +12,6 @@
 
   tasks:
 
-    - name: debug token
-      debug: 
-        var: fw_access_token 
-
     - name: only run once block
       block:
       - name: read select file
