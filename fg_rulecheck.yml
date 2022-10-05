@@ -44,3 +44,4 @@
   when: 
     - _fw_lookup.json.results | length > 0
     - _fw_lookup.json.results.success == true
+    - _fw_lookup.json.results.policy_id != 0
