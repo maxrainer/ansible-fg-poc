@@ -1,0 +1,37 @@
+{
+    "fw_rule": {
+      "name": "rule_local_06",
+      "src": {
+        "addresses": [
+          {
+            "name": "inside_host_D13",
+            "ipv4": "10.90.0.13"
+          }
+        ]
+      },
+      "dest": {
+        "addresses": [
+          {
+            "name": "pub_host_A",
+            "type": "host",
+            "ipv4": "10.194.2.5"
+          },
+          {
+            "name": "pub_host_B",
+            "type": "host",
+            "ipv4": "10.195.4.3"
+          }
+        ]
+      },
+      "services": [
+        "http",
+        "https"
+      ],
+      "rule": {
+        "action": "permit",
+        "logging_init": false,
+        "logging_close": true,
+        "ips_sensor": "default"
+      }
+    }
+  }
