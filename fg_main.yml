@@ -9,9 +9,13 @@
     - _zone: ""
     - local_rule: "{{ fw_rule }}"
     - fw_rules: []
-    - _token: "{{ fw_access_token }}"
 
   tasks:
+
+    - name: debug token
+      debug: 
+        var: fw_access_token 
+
     - name: only run once block
       block:
       - name: read select file
