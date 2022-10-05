@@ -26,7 +26,7 @@
     method: GET
     validate_certs: no
     headers:
-      Authorization: "Bearer {{ fw_access_token }}"
+      Authorization: "Bearer {{ fg_access_token }}"
     status_code: 200
   register: _fw_lookup
 
