@@ -6,12 +6,10 @@
   vars:
     - fw_select_file: files/fw_select.csv
     - _fw_selected: []
-    # - fgt_user: "{{ ansible_user }}"
-    # - fgt_pass: "{{ ansible_ssh_pass }}"
-    # - fgt_host: "{{ ansible_host }}"
     - _zone: ""
     - local_rule: "{{ fw_rule }}"
     - fw_rules: []
+    - _token: "{{ fw_access_token }}"
 
   tasks:
     - name: only run once block
