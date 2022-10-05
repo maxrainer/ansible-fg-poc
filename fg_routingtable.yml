@@ -54,6 +54,7 @@
   ansible.builtin.uri: 
     url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/monitor/router/lookup?destination={{ srcip }}&ipv6=false&vdom={{ fw_fg_vdom }}"
     method: GET
+    validate_certs: no
     headers:
       Authorization: "Bearer {{ fw_access_token }}"
     status_code: 200
@@ -70,6 +71,7 @@
   ansible.builtin.uri: 
     url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/cmdb/system/zone?filter=interface=={{ _intf }}&vdom={{ fw_fg_vdom }}"
     method: GET
+    validate_certs: no
     headers:
       Authorization: "Bearer {{ fw_access_token }}"
     status_code: 200

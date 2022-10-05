@@ -24,6 +24,7 @@
   ansible.builtin.uri: 
     url: "{{ ansible_httpapi_proto }}://{{ ansible_host }}:{{ ansible_httpapi_port }}/api/v2/monitor/firewall/policy-lookup?{{ _query }}"
     method: GET
+    validate_certs: no
     headers:
       Authorization: "Bearer {{ fw_access_token }}"
     status_code: 200
